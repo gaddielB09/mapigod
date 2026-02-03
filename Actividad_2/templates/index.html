@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapiGod - Mapa Interactivo de Tijuana</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    
+    <style>
+        /* Asegurar que el mapa ocupe todo el espacio asignado */
+        #map {
+            z-index: 0;
+        }
+        
+        /* Personalizar los controles de zoom para mejor accesibilidad y visibilidad */
+        .leaflet-control-zoom {
+            border: 3px solid #0A4D3C !important;
+            border-radius: 16px !important;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(10, 77, 60, 0.3), 0 8px 10px -6px rgba(10, 77, 60, 0.2) !important;
+        }
+        
+        .leaflet-control-zoom a {
+            width: 50px !important;
+            height: 50px !important;
+            line-height: 50px !important;
+            font-size: 24px !important;
+            font-weight: bold !important;
+            color: white !important;
+            background: linear-gradient(135deg, #0A4D3C 0%, #10B981 100%) !important;
+            transition: all 0.3s ease !important;
+            border: none !important;
+        }
+        
+        .leaflet-control-zoom a:hover {
+            background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%) !important;
+            color: white !important;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+        }
+        
+        .leaflet-control-zoom a:first-child {
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2) !important;
+        }
+        
+        .leaflet-control-zoom a:active {
+            transform: scale(0.95);
+        }
+        
+        /* Estilo para los popups */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .leaflet-popup-tip {
+            background-color: white;
+        }
+        
+        /* Personalizar el marcador */
+        .custom-marker-icon {
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-emerald-700 to-emerald-900 text-white py-4 shadow-lg">
+        <div class="container mx-auto px-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                    <h1 class="text-2xl font-bold">MapiGod</h1>
+                </div>
+                <p class="text-emerald-100 hidden sm:block">Explora Tijuana, Baja California</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Map Info Bar -->
+    <div class="bg-white border-b border-slate-200 py-3">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    <span class="text-slate-700 font-medium">Mapa centrado en Tijuana, México</span>
+                </div>
+                <div class="flex items-center space-x-4 text-sm text-slate-600">
+                    <div class="flex items-center space-x-1">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                        </svg>
+                        <span>Navegación segura</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"/>
+                        </svg>
+                        <span>Modo offline disponible</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map Container -->
+    <div class="container mx-auto px-6 py-6">
+        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200">
+            <!-- Map Controls Info -->
+            <div class="bg-gradient-to-r from-slate-50 to-white px-6 py-4 border-b border-slate-200">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900 mb-1">Mapa Interactivo</h2>
+                        <p class="text-sm text-slate-600">Tu ubicación se mostrará automáticamente en el mapa. Usa los controles de zoom para explorar.</p>
+                    </div>
+                    <div class="flex items-center space-x-2 bg-emerald-50 px-4 py-2 rounded-lg border border-emerald-200">
+                        <svg class="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
+                        <span class="text-sm font-medium text-emerald-800">Tu ubicación GPS</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Map -->
+            <div id="map" class="w-full h-screen max-h-[600px] sm:max-h-[700px]"></div>
+            
+            <!-- Map Footer Info -->
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-200">
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
+                    <div class="flex items-center space-x-2 text-slate-600">
+                        <svg class="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                        </svg>
+                        <span><strong class="text-slate-900">MapiGod</strong> - Explora con seguridad</span>
+                    </div>
+                    <div class="flex items-center space-x-2 text-slate-500">
+                        <span>Powered by</span>
+                        <a href="https://www.openstreetmap.org/" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium">OpenStreetMap</a>
+                        <span>&</span>
+                        <a href="https://leafletjs.com/" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-medium">Leaflet</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Coordenadas por defecto (Tijuana) en caso de que no se pueda obtener la ubicación
+        const defaultCoords = [32.5149, -117.0382];
+        
+        // Inicializar el mapa centrado en coordenadas por defecto
+        const map = L.map('map', {
+            center: defaultCoords,
+            zoom: 13,
+            zoomControl: true
+        });
+        
+        // Posicionar los controles de zoom en la esquina superior derecha (fácil acceso)
+        map.zoomControl.setPosition('topright');
+        
+        // Agregar capa de tiles de OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+            minZoom: 3
+        }).addTo(map);
+        
+        // Crear icono personalizado para la ubicación del usuario
+        const userLocationIcon = L.icon({
+            iconUrl: 'data:image/svg+xml;base64,' + btoa(`
+                <svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <circle cx="20" cy="20" r="18" fill="#0A4D3C" opacity="0.2"/>
+                    <circle cx="20" cy="20" r="12" fill="#0A4D3C" opacity="0.4"/>
+                    <circle cx="20" cy="20" r="8" fill="#10B981" filter="url(#glow)"/>
+                    <circle cx="20" cy="20" r="4" fill="white"/>
+                </svg>
+            `),
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
+            popupAnchor: [0, -20]
+        });
+        
+        // Variable para guardar el marcador de ubicación del usuario
+        let userMarker = null;
+        
+        // Función para obtener la ubicación del usuario
+        function getUserLocation() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    // Éxito al obtener ubicación
+                    function(position) {
+                        const userCoords = [position.coords.latitude, position.coords.longitude];
+                        
+                        // Si ya existe un marcador de usuario, eliminarlo
+                        if (userMarker) {
+                            map.removeLayer(userMarker);
+                        }
+                        
+                        // Crear nuevo marcador de ubicación del usuario
+                        userMarker = L.marker(userCoords, { icon: userLocationIcon }).addTo(map);
+                        
+                        userMarker.bindPopup(`
+                            <div class="p-3">
+                                <h3 class="font-bold text-emerald-900 mb-2">📍 Tu Ubicación</h3>
+                                <p class="text-sm text-slate-600 mb-2">
+                                    <strong>Latitud:</strong> ${position.coords.latitude.toFixed(6)}<br>
+                                    <strong>Longitud:</strong> ${position.coords.longitude.toFixed(6)}
+                                </p>
+                                <p class="text-xs text-slate-500">Precisión: ~${Math.round(position.coords.accuracy)} metros</p>
+                            </div>
+                        `).openPopup();
+                        
+                        // Centrar el mapa en la ubicación del usuario
+                        map.setView(userCoords, 15);
+                        
+                        // Agregar círculo de precisión
+                        L.circle(userCoords, {
+                            color: '#10B981',
+                            fillColor: '#10B981',
+                            fillOpacity: 0.15,
+                            radius: position.coords.accuracy
+                        }).addTo(map);
+                        
+                        console.log('Ubicación obtenida:', userCoords);
+                    },
+                    // Error al obtener ubicación
+                    function(error) {
+                        console.error('Error al obtener ubicación:', error);
+                        alert('No se pudo obtener tu ubicación. Usando ubicación predeterminada (Tijuana).');
+                        
+                        // Usar ubicación por defecto
+                        if (userMarker) {
+                            map.removeLayer(userMarker);
+                        }
+                        userMarker = L.marker(defaultCoords, { icon: userLocationIcon }).addTo(map);
+                        userMarker.bindPopup(`
+                            <div class="p-3">
+                                <h3 class="font-bold text-amber-900 mb-2">⚠️ Ubicación Predeterminada</h3>
+                                <p class="text-sm text-slate-600">Tijuana, Baja California</p>
+                                <p class="text-xs text-slate-500 mt-2">Permite el acceso a la ubicación para ver tu posición real</p>
+                            </div>
+                        `).openPopup();
+                    },
+                    // Opciones de geolocalización
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                alert('Tu navegador no soporta geolocalización.');
+                // Usar ubicación por defecto
+                userMarker = L.marker(defaultCoords, { icon: userLocationIcon }).addTo(map);
+                userMarker.bindPopup(`
+                    <div class="p-3">
+                        <h3 class="font-bold text-amber-900 mb-2">⚠️ Geolocalización No Disponible</h3>
+                        <p class="text-sm text-slate-600">Ubicación predeterminada: Tijuana, Baja California</p>
+                    </div>
+                `).openPopup();
+            }
+        }
+        
+        // Obtener ubicación del usuario al cargar la página
+        getUserLocation();
+        
+        // Ajustar el mapa al cargar para asegurar que se muestre correctamente
+        setTimeout(function() {
+            map.invalidateSize();
+        }, 100);
+        
+        console.log('Mapa inicializado con ubicación del usuario.');
+    </script>
+</body>
+</html>

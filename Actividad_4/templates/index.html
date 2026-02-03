@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MapiGod - Mapa Interactivo</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      crossorigin=""
+    ></script>
+
+    <style>
+      /* ── Layout base ──────────────────────────────────────── */
+      .map-wrap {
+        display: flex;
+        height: 700px;
+        max-height: 85vh;
+      }
+
+      /* ── Mapa ─────────────────────────────────────────────── */
+      #map {
+        flex: 1;
+        z-index: 0;
+        transition: flex 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* ── Panel derecho ────────────────────────────────────── */
+      .panel {
+        width: 0;
+        overflow: hidden;
+        transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        background: #0f172a; /* slate-900 */
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid #1e293b; /* slate-800 */
+      }
+      .panel.open {
+        width: 320px;
+        flex-shrink: 0;
+      }
+
+      /* ── Panel header ─────────────────────────────────────── */
+      .panel-header {
+        background: linear-gradient(135deg, #0a4d3c, #10b981);
+        padding: 18px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .panel-header h3 {
+        color: white;
+        font-weight: 700;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .panel-header .badge {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 20px;
+        backdrop-filter: blur(4px);
+      }
+
+      /* ── Botón cerrar panel ───────────────────────────────── */
+      .btn-close-panel {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        border: none;
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
+        font-size: 1.1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+        flex-shrink: 0;
+      }
+      .btn-close-panel:hover {
+        background: rgba(255, 255, 255, 0.28);
+      }
+
+      /* ── Lista de puntos ──────────────────────────────────── */
+      .panel-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .panel-body::-webkit-scrollbar {
+        width: 6px;
+      }
+      .panel-body::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .panel-body::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 3px;
+      }
+
+      /* ── Tarjeta de punto ─────────────────────────────────── */
+      .punto-card {
+        background: #1e293b; /* slate-800 */
+        border: 1px solid #334155; /* slate-700 */
+        border-radius: 10px;
+        padding: 12px 14px;
+        transition:
+          border-color 0.2s,
+          transform 0.15s;
+        cursor: pointer;
+      }
+      .punto-card:hover {
+        border-color: #10b981;
+        transform: translateX(3px);
+      }
+      .punto-card.active {
+        border-color: #10b981;
+        background: #1e3a2f; /* tint verde oscuro */
+      }
+      .punto-card .card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+      .punto-card .card-id {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .punto-card .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+        flex-shrink: 0;
+      }
+      .punto-card .id-label {
+        color: #f1f5f9; /* slate-100 */
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
+      .punto-card .coords {
+        color: #94a3b8; /* slate-400 */
+        font-size: 0.76rem;
+        line-height: 1.5;
+        margin-left: 18px; /* alinear con el texto del id */
+      }
+
+      /* ── Botón eliminar en card ───────────────────────────── */
+      .btn-card-delete {
+        background: transparent;
+        border: none;
+        color: #64748b; /* slate-500 */
+        font-size: 0.9rem;
+        cursor: pointer;
+        padding: 2px 4px;
+        border-radius: 6px;
+        transition:
+          color 0.2s,
+          background 0.2s;
+        flex-shrink: 0;
+      }
+      .btn-card-delete:hover {
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+      }
+
+      /* ── Estado vacío ─────────────────────────────────────── */
+      .panel-empty {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        text-align: center;
+        padding: 24px 16px;
+        gap: 10px;
+      }
+      .panel-empty svg {
+        opacity: 0.35;
+      }
+      .panel-empty p {
+        font-size: 0.82rem;
+        line-height: 1.5;
+      }
+
+      /* ── Panel footer ─────────────────────────────────────── */
+      .panel-footer {
+        flex-shrink: 0;
+        border-top: 1px solid #334155;
+        padding: 10px 14px;
+      }
+      .btn-clear-all {
+        width: 100%;
+        background: transparent;
+        border: 1px solid #475569; /* slate-600 */
+        color: #94a3b8;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .btn-clear-all:hover {
+        border-color: #ef4444;
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.08);
+      }
+      .btn-clear-all.hidden {
+        display: none;
+      }
+
+      /* ── Botón flotante para abrir panel (cuando está cerrado) */
+      .btn-open-panel {
+        /* position: absolute; */
+        top: 16px;
+        right: 16px;
+        z-index: 500;
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        border: 3px solid #0a4d3c;
+        background: white;
+        box-shadow: 0 6px 18px rgba(10, 77, 60, 0.3);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+      .btn-open-panel:hover {
+        transform: scale(1.08);
+        box-shadow: 0 8px 24px rgba(10, 77, 60, 0.4);
+      }
+      .btn-open-panel svg {
+        width: 22px;
+        height: 22px;
+        color: #0a4d3c;
+      }
+      .btn-open-panel .panel-badge {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: #f59e0b;
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 700;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+      }
+      .btn-open-panel .panel-badge.hidden {
+        display: none;
+      }
+
+      /* ── Zoom controls ────────────────────────────────────── */
+      .leaflet-control-zoom {
+        border: 3px solid #0a4d3c !important;
+        border-radius: 16px !important;
+        overflow: hidden;
+        box-shadow: 0 10px 25px -5px rgba(10, 77, 60, 0.3) !important;
+      }
+      .leaflet-control-zoom a {
+        width: 50px !important;
+        height: 50px !important;
+        line-height: 50px !important;
+        font-size: 24px !important;
+        font-weight: bold !important;
+        color: white !important;
+        background: linear-gradient(135deg, #0a4d3c, #10b981) !important;
+        transition: all 0.3s ease !important;
+      }
+      .leaflet-control-zoom a:hover {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
+        transform: scale(1.1);
+      }
+      .leaflet-control-zoom a:first-child {
+        border-bottom: 2px solid rgba(255, 255, 255, 0.2) !important;
+      }
+
+      /* ── Popups ───────────────────────────────────────────── */
+      .leaflet-popup-content-wrapper {
+        border-radius: 12px;
+        padding: 0 !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      }
+      .leaflet-popup-content {
+        margin: 0 !important;
+      }
+
+      /* ── Toast ────────────────────────────────────────────── */
+      .toast {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: white;
+        padding: 16px 22px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        z-index: 10000;
+        min-width: 280px;
+        animation: toastIn 0.3s ease-out;
+      }
+      .toast.success {
+        border-left: 4px solid #10b981;
+      }
+      .toast.error {
+        border-left: 4px solid #ef4444;
+      }
+      .toast.info {
+        border-left: 4px solid #0a4d3c;
+      }
+      .toast.hiding {
+        animation: toastOut 0.3s ease-out forwards;
+      }
+
+      @keyframes toastIn {
+        from {
+          transform: translateX(120%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      @keyframes toastOut {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(120%);
+          opacity: 0;
+        }
+      }
+
+      /* ── Spinner ──────────────────────────────────────────── */
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(10, 77, 60, 0.2);
+        border-top-color: #0a4d3c;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        flex-shrink: 0;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50">
+    <!-- Header -->
+    <header
+      class="bg-gradient-to-r from-emerald-700 to-emerald-900 text-white py-4 shadow-lg"
+    >
+      <div class="container mx-auto px-6 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+            />
+          </svg>
+          <h1 class="text-2xl font-bold">MapiGod</h1>
+        </div>
+        <p class="text-emerald-200 text-sm hidden sm:block">
+          Haz clic en el mapa para crear puntos
+        </p>
+      </div>
+    </header>
+
+    <!-- Barra de estado -->
+    <div class="bg-white border-b border-slate-200 py-3">
+      <div
+        class="container mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3"
+      >
+        <span class="text-slate-700 font-medium">
+          Puntos guardados:
+          <span id="saved-count" class="text-emerald-600 font-bold">0</span>
+        </span>
+        <div class="flex items-center space-x-5 text-sm text-slate-500">
+          <div class="flex items-center space-x-2">
+            <div class="w-3 h-3 rounded-full bg-slate-400"></div>
+            <span>Temporal</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+            <span>Guardando</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <div class="w-3 h-3 rounded-full bg-emerald-600"></div>
+            <span>Guardado</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mapa + Panel -->
+    <div class="container mx-auto px-6 py-6">
+      <div
+        class="bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200"
+      >
+        <!-- Sub-header del mapa -->
+        <div
+          class="bg-gradient-to-r from-slate-50 to-white px-6 py-4 border-b border-slate-200 flex items-center justify-between"
+        >
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Mapa Interactivo</h2>
+            <p class="text-sm text-slate-500 mt-0.5">
+              Haz clic en cualquier lugar para crear un punto
+            </p>
+          </div>
+          <div>
+            <button class="btn-open-panel" id="btn-open">
+              <svg
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
+              <span class="panel-badge hidden" id="panel-badge">0</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Contenedor mapa + panel side-by-side -->
+        <div class="map-wrap" style="position: relative">
+          <!-- Mapa -->
+          <div id="map"></div>
+
+          <!-- Botón flotante para abrir panel -->
+
+          <!-- Panel de puntos -->
+          <aside class="panel" id="panel">
+            <!-- Header del panel -->
+            <div class="panel-header">
+              <h3>
+                <svg
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+                  />
+                </svg>
+                Mis Puntos
+                <span class="badge" id="panel-count">0</span>
+              </h3>
+              <button class="btn-close-panel" id="btn-close">✕</button>
+            </div>
+
+            <!-- Lista de puntos -->
+            <div class="panel-body" id="panel-body">
+              <!-- Estado vacío (se muestra por defecto) -->
+              <div class="panel-empty" id="panel-empty">
+                <svg
+                  width="40"
+                  height="40"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+                  />
+                </svg>
+                <p>
+                  Aún no tienes puntos guardados.<br />Haz clic en el mapa para
+                  crear uno.
+                </p>
+              </div>
+              <!-- Las tarjetas se insertan aquí con JS -->
+            </div>
+
+            <!-- Footer del panel -->
+            <div class="panel-footer">
+              <button class="btn-clear-all hidden" id="btn-clear-all">
+                🗑️ Eliminar todos los puntos
+              </button>
+            </div>
+          </aside>
+        </div>
+
+        <!-- Footer inferior -->
+        <div
+          class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex items-center justify-between text-sm"
+        >
+          <span class="text-slate-500"
+            ><strong class="text-slate-700">MapiGod</strong> – Explora con
+            seguridad</span
+          >
+          <span class="text-slate-400"
+            >Powered by
+            <a
+              href="https://www.openstreetmap.org/"
+              target="_blank"
+              class="text-emerald-600 hover:underline"
+              >OpenStreetMap</a
+            ></span
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────────────────── -->
+    <script>
+      (function () {
+        const DEFAULT = [32.5149, -117.0382];
+
+        // ── Mapa ───────────────────────────────────────────────────
+        const map = L.map("map", { center: DEFAULT, zoom: 13 });
+        map.zoomControl.setPosition("topright");
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap contributors",
+          maxZoom: 19,
+        }).addTo(map);
+
+        // ── Iconos ─────────────────────────────────────────────────
+        function pin(color) {
+          return L.icon({
+            iconUrl:
+              "data:image/svg+xml;base64," +
+              btoa(
+                `<svg width="30" height="38" xmlns="http://www.w3.org/2000/svg">
+                   <path d="M15 0C8.787 0 3.75 5.037 3.75 11.25c0 8.438 11.25 26.25 11.25 26.25s11.25-17.812 11.25-26.25C26.25 5.037 21.213 0 15 0z" fill="${color}"/>
+                   <circle cx="15" cy="11" r="4" fill="white"/></svg>`,
+              ),
+            iconSize: [30, 38],
+            iconAnchor: [15, 38],
+            popupAnchor: [0, -40],
+          });
+        }
+
+        const icons = {
+          user: L.icon({
+            iconUrl:
+              "data:image/svg+xml;base64," +
+              btoa(
+                `<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">
+                   <circle cx="20" cy="20" r="18" fill="#0A4D3C" opacity="0.15"/>
+                   <circle cx="20" cy="20" r="11" fill="#0A4D3C" opacity="0.35"/>
+                   <circle cx="20" cy="20" r="7"  fill="#10B981"/>
+                   <circle cx="20" cy="20" r="3"  fill="white"/></svg>`,
+              ),
+            iconSize: [40, 40],
+            iconAnchor: [20, 20],
+            popupAnchor: [0, -22],
+          }),
+          temporal: pin("#94A3B8"),
+          guardando: pin("#F59E0B"),
+          guardado: pin("#10B981"),
+        };
+
+        // ── Estado ─────────────────────────────────────────────────
+        let puntos = [];
+        let marcadorTemporal = null;
+        let contador = 0;
+        let cardActiva = null; // referencia a la card del panel activa
+
+        // ── Referencias DOM ────────────────────────────────────────
+        const panel = document.getElementById("panel");
+        const btnOpen = document.getElementById("btn-open");
+        const btnClose = document.getElementById("btn-close");
+        const panelBody = document.getElementById("panel-body");
+        const panelEmpty = document.getElementById("panel-empty");
+        const panelCount = document.getElementById("panel-count");
+        const panelBadge = document.getElementById("panel-badge");
+        const btnClearAll = document.getElementById("btn-clear-all");
+        const savedCount = document.getElementById("saved-count");
+
+        // ── Panel abrir / cerrar ───────────────────────────────────
+        btnOpen.addEventListener("click", () => {
+          panel.classList.add("open");
+          btnOpen.style.display = "none";
+          setTimeout(() => map.invalidateSize(), 360);
+        });
+
+        btnClose.addEventListener("click", () => {
+          panel.classList.remove("open");
+          btnOpen.style.display = "flex";
+          cardActiva = null;
+          document
+            .querySelectorAll(".punto-card")
+            .forEach((c) => c.classList.remove("active"));
+          setTimeout(() => map.invalidateSize(), 360);
+        });
+
+        // ── Toast ──────────────────────────────────────────────────
+        function toast(msg, tipo = "info") {
+          const el = document.createElement("div");
+          el.className = "toast " + tipo;
+          const iconos = { success: "✅", error: "❌", info: "" };
+          const isGuardando = tipo === "info" && msg.includes("Guardando");
+          el.innerHTML =
+            (isGuardando
+              ? '<div class="spinner"></div>'
+              : `<span class="text-xl">${iconos[tipo] || "ℹ️"}</span>`) +
+            `<p class="font-semibold text-slate-800">${msg}</p>`;
+          document.body.appendChild(el);
+          setTimeout(() => {
+            el.classList.add("hiding");
+            el.addEventListener("animationend", () => el.remove());
+          }, 2800);
+          return el;
+        }
+
+        // ── Actualizar UI global ───────────────────────────────────
+        function actualizarUI() {
+          const n = puntos.length;
+          savedCount.textContent = n;
+          panelCount.textContent = n;
+          panelBadge.textContent = n;
+          panelBadge.classList.toggle("hidden", n === 0);
+          panelEmpty.style.display = n === 0 ? "flex" : "none";
+          btnClearAll.classList.toggle("hidden", n === 0);
+        }
+
+        // ── Generar ID ─────────────────────────────────────────────
+        function generarId() {
+          return "P" + ++contador;
+        }
+
+        // ── Crear card en el panel ─────────────────────────────────
+        function crearCard(punto) {
+          const card = document.createElement("div");
+          card.className = "punto-card";
+          card.dataset.id = punto.id;
+          card.innerHTML = `
+            <div class="card-top">
+                <div class="card-id">
+                    <div class="dot"></div>
+                    <span class="id-label">${punto.id}</span>
+                </div>
+                <button class="btn-card-delete" data-delete="${punto.id}" title="Eliminar">🗑️</button>
+            </div>
+            <p class="coords">
+                <strong style="color:#cbd5e1">Lat:</strong> ${punto.lat.toFixed(6)}<br>
+                <strong style="color:#cbd5e1">Lng:</strong> ${punto.lng.toFixed(6)}
+            </p>`;
+
+          // Click en la card → centra el mapa en ese punto
+          card.addEventListener("click", (e) => {
+            if (e.target.closest(".btn-card-delete")) return; // no si click en eliminar
+            document
+              .querySelectorAll(".punto-card")
+              .forEach((c) => c.classList.remove("active"));
+            card.classList.add("active");
+            cardActiva = card;
+            map.setView([punto.lat, punto.lng], 15, { pan: { animate: true } });
+            punto.marker.openPopup();
+          });
+
+          panelBody.appendChild(card);
+        }
+
+        // ── Eliminar card del panel ────────────────────────────────
+        function eliminarCard(id) {
+          const card = panelBody.querySelector(`[data-id="${id}"]`);
+          if (card) card.remove();
+        }
+
+        // ── Popup punto guardado ───────────────────────────────────
+        function popupGuardado(punto) {
+          return `
+            <div class="p-4" style="min-width:240px">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-bold text-emerald-800 text-base">✅ Punto guardado</h3>
+                    <span class="text-xs bg-emerald-100 text-emerald-700 font-semibold px-2 py-0.5 rounded">${punto.id}</span>
+                </div>
+                <p class="text-sm text-slate-500 mb-3">
+                    <strong>Lat:</strong> ${punto.lat.toFixed(6)}<br>
+                    <strong>Lng:</strong> ${punto.lng.toFixed(6)}
+                </p>
+                <button data-delete="${punto.id}"
+                        class="w-full bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2 rounded-lg transition-colors">
+                    🗑️ Eliminar punto
+                </button>
+            </div>`;
+        }
+
+        // ── Guardar punto (simulado) ───────────────────────────────
+        function guardarPunto(lat, lng) {
+          const t = toast("Guardando punto...", "info");
+          marcadorTemporal.setIcon(icons.guardando);
+
+          setTimeout(() => {
+            t.classList.add("hiding");
+            t.addEventListener("animationend", () => t.remove());
+
+            const punto = {
+              id: generarId(),
+              lat,
+              lng,
+              marker: marcadorTemporal,
+            };
+
+            punto.marker.setIcon(icons.guardado);
+            punto.marker.setPopupContent(popupGuardado(punto)).openPopup();
+
+            puntos.push(punto);
+            crearCard(punto);
+            marcadorTemporal = null;
+            actualizarUI();
+
+            toast("Punto guardado correctamente", "success");
+          }, 800);
+        }
+
+        // ── Eliminar punto ─────────────────────────────────────────
+        function eliminarPunto(id) {
+          const i = puntos.findIndex((p) => p.id === id);
+          if (i === -1) return;
+          map.removeLayer(puntos[i].marker);
+          puntos.splice(i, 1);
+          eliminarCard(id);
+          actualizarUI();
+          toast("Punto eliminado", "success");
+        }
+
+        // ── Eliminar todos ─────────────────────────────────────────
+        function eliminarTodos() {
+          puntos.forEach((p) => map.removeLayer(p.marker));
+          puntos = [];
+          panelBody.querySelectorAll(".punto-card").forEach((c) => c.remove());
+          cardActiva = null;
+          actualizarUI();
+          toast("Todos los puntos eliminados", "success");
+        }
+
+        // ── Cancelar temporal ──────────────────────────────────────
+        function cancelar() {
+          if (!marcadorTemporal) return;
+          map.removeLayer(marcadorTemporal);
+          marcadorTemporal = null;
+          toast("Punto cancelado", "info");
+        }
+
+        // ── Click en el mapa ───────────────────────────────────────
+        map.on("click", function (e) {
+          if (marcadorTemporal) map.removeLayer(marcadorTemporal);
+
+          const { lat, lng } = e.latlng;
+          marcadorTemporal = L.marker([lat, lng], {
+            icon: icons.temporal,
+          }).addTo(map);
+
+          marcadorTemporal
+            .bindPopup(
+              `
+            <div class="p-4" style="min-width:240px">
+                <h3 class="font-bold text-slate-800 text-base mb-1">📍 Nuevo punto</h3>
+                <p class="text-sm text-slate-500 mb-3">
+                    <strong>Lat:</strong> ${lat.toFixed(6)}<br>
+                    <strong>Lng:</strong> ${lng.toFixed(6)}
+                </p>
+                <p class="text-xs text-slate-400 mb-3">¿Deseas guardar este punto?</p>
+                <div class="flex gap-2">
+                    <button class="btn-guardar flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold py-2 rounded-lg transition-colors">
+                        💾 Guardar
+                    </button>
+                    <button class="btn-cancelar bg-slate-400 hover:bg-slate-500 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors">
+                        ✖️ Cancelar
+                    </button>
+                </div>
+            </div>
+        `,
+              { maxWidth: 280 },
+            )
+            .openPopup();
+        });
+
+        // ── Delegación de eventos ─────────────────────────────────
+        document.addEventListener("click", function (e) {
+          if (e.target.closest(".btn-guardar") && marcadorTemporal) {
+            const { lat, lng } = marcadorTemporal.getLatLng();
+            guardarPunto(lat, lng);
+          }
+          if (e.target.closest(".btn-cancelar")) cancelar();
+
+          const delBtn = e.target.closest("[data-delete]");
+          if (delBtn) eliminarPunto(delBtn.dataset.delete);
+
+          if (e.target.closest("#btn-clear-all")) eliminarTodos();
+        });
+
+        // ── Ubicación del usuario ──────────────────────────────────
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function (pos) {
+              const coords = [pos.coords.latitude, pos.coords.longitude];
+              L.marker(coords, { icon: icons.user })
+                .addTo(map)
+                .bindPopup(
+                  `
+                    <div class="p-3" style="min-width:180px">
+                        <h3 class="font-bold text-emerald-800 mb-1">📍 Tu ubicación</h3>
+                        <p class="text-sm text-slate-500">
+                            <strong>Lat:</strong> ${pos.coords.latitude.toFixed(6)}<br>
+                            <strong>Lng:</strong> ${pos.coords.longitude.toFixed(6)}
+                        </p>
+                        <p class="text-xs text-slate-400 mt-1">Precisión: ~${Math.round(pos.coords.accuracy)} m</p>
+                    </div>
+                `,
+                )
+                .openPopup();
+              L.circle(coords, {
+                color: "#10B981",
+                fillColor: "#10B981",
+                fillOpacity: 0.12,
+                radius: pos.coords.accuracy,
+              }).addTo(map);
+              map.setView(coords, 15);
+            },
+            function () {
+              toast("No se pudo obtener tu ubicación", "error");
+            },
+          );
+        }
+
+        setTimeout(() => map.invalidateSize(), 100);
+      })();
+    </script>
+  </body>
+</html>

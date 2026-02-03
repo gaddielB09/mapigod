@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MapiGod - Tu Guía de Aventuras</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --primary: #0a4d3c;
+        --accent: #f59e0b;
+        --deep: #051f1a;
+        --light: #e8f4f1;
+      }
+
+      body {
+        font-family: "Outfit", sans-serif;
+        overflow-x: hidden;
+      }
+
+      .display-font {
+        font-family: "Bebas Neue", sans-serif;
+        letter-spacing: 0.05em;
+      }
+
+      /* Topographic Background Pattern */
+      .topo-bg {
+        background-color: var(--primary);
+        background-image:
+          linear-gradient(
+            to bottom,
+            rgba(10, 77, 60, 0.85),
+            rgba(5, 31, 26, 0.95)
+          ),
+          url("https://images.unsplash.com/photo-1506905925346-21bda4d32df4?q=80&w=2070&auto=format&fit=crop");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        position: relative;
+      }
+
+      .topo-bg::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image:
+          repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 50px,
+            rgba(255, 255, 255, 0.02) 50px,
+            rgba(255, 255, 255, 0.02) 100px
+          ),
+          repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 50px,
+            rgba(255, 255, 255, 0.02) 50px,
+            rgba(255, 255, 255, 0.02) 100px
+          ),
+          url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 40 Q 30 20, 50 40 T 90 40 M10 80 Q 30 60, 50 80 T 90 80 M10 120 Q 30 100, 50 120 T 90 120 M10 160 Q 30 140, 50 160 T 90 160' stroke='rgba(255,255,255,0.04)' fill='none' stroke-width='1'/%3E%3C/svg%3E");
+        opacity: 0.5;
+        animation: float 20s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-20px);
+        }
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes scaleIn {
+        from {
+          opacity: 0;
+          transform: scale(0.9);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      @keyframes slideInLeft {
+        from {
+          opacity: 0;
+          transform: translateX(-50px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes slideInRight {
+        from {
+          opacity: 0;
+          transform: translateX(50px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes pulse-glow {
+        0%,
+        100% {
+          box-shadow:
+            0 0 20px rgba(245, 158, 11, 0.4),
+            0 0 40px rgba(245, 158, 11, 0.2);
+        }
+        50% {
+          box-shadow:
+            0 0 30px rgba(245, 158, 11, 0.6),
+            0 0 60px rgba(245, 158, 11, 0.3);
+        }
+      }
+
+      .animate-fade-in-up {
+        animation: fadeInUp 0.8s ease-out forwards;
+      }
+
+      .animate-scale-in {
+        animation: scaleIn 1s ease-out forwards;
+      }
+
+      .animate-slide-left {
+        animation: slideInLeft 0.8s ease-out forwards;
+      }
+
+      .animate-slide-right {
+        animation: slideInRight 0.8s ease-out forwards;
+      }
+
+      .delay-100 {
+        animation-delay: 0.1s;
+        opacity: 0;
+      }
+      .delay-200 {
+        animation-delay: 0.2s;
+        opacity: 0;
+      }
+      .delay-300 {
+        animation-delay: 0.3s;
+        opacity: 0;
+      }
+      .delay-400 {
+        animation-delay: 0.4s;
+        opacity: 0;
+      }
+      .delay-500 {
+        animation-delay: 0.5s;
+        opacity: 0;
+      }
+
+      .cta-button {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .cta-button::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        transform: translate(-50%, -50%);
+        transition:
+          width 0.6s,
+          height 0.6s;
+      }
+
+      .cta-button:hover::before {
+        width: 300px;
+        height: 300px;
+      }
+
+      .cta-button:hover {
+        transform: translateY(-3px);
+        animation: pulse-glow 2s infinite;
+      }
+
+      .feature-card {
+        backdrop-filter: blur(10px);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .feature-card:hover {
+        transform: translateY(-8px) scale(1.02);
+      }
+
+      .compass-icon {
+        width: 80px;
+        height: 80px;
+        animation: rotate 20s linear infinite;
+      }
+
+      @keyframes rotate {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .grain {
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+        pointer-events: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md shadow-sm">
+      <div class="max-w-7xl mx-auto px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2 animate-fade-in-up">
+            <svg
+              class="w-8 h-8 text-emerald-700"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+              />
+            </svg>
+            <span class="display-font text-3xl text-emerald-900">MapiGod</span>
+          </div>
+          <div class="hidden md:flex space-x-8 animate-fade-in-up delay-100">
+            <a
+              href="#features"
+              class="text-slate-700 hover:text-emerald-700 transition font-medium"
+              >Características</a
+            >
+            <a
+              href="#about"
+              class="text-slate-700 hover:text-emerald-700 transition font-medium"
+              >Acerca de</a
+            >
+            <a
+              href="#download"
+              class="text-slate-700 hover:text-emerald-700 transition font-medium"
+              >Descargar</a
+            >
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section
+      class="relative min-h-screen topo-bg flex items-center justify-center overflow-hidden pt-20"
+    >
+      <div class="grain"></div>
+      <div
+        class="absolute top-1/4 right-1/4 w-96 h-96 bg-amber-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"
+      ></div>
+      <div
+        class="absolute bottom-1/4 left-1/4 w-96 h-96 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"
+        style="animation-delay: 2s"
+      ></div>
+
+      <div class="relative z-10 max-w-7xl mx-auto px-6 py-20 text-center">
+        <!-- Compass Icon -->
+        <div class="flex justify-center mb-8">
+          <svg
+            class="compass-icon opacity-80"
+            viewBox="0 0 100 100"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle
+              cx="50"
+              cy="50"
+              r="45"
+              stroke="rgba(255,255,255,0.3)"
+              stroke-width="2"
+            />
+            <circle
+              cx="50"
+              cy="50"
+              r="35"
+              stroke="rgba(255,255,255,0.2)"
+              stroke-width="1"
+            />
+            <path d="M50 10 L55 45 L50 50 L45 45 Z" fill="#F59E0B" />
+            <path
+              d="M50 90 L55 55 L50 50 L45 55 Z"
+              fill="rgba(255,255,255,0.6)"
+            />
+            <circle cx="50" cy="50" r="3" fill="white" />
+          </svg>
+        </div>
+
+        <h1
+          class="display-font text-7xl md:text-9xl text-white mb-6 animate-fade-in-up delay-200 leading-tight"
+        >
+          TU AVENTURA<br />
+          <span class="text-amber-400">COMIENZA AQUÍ</span>
+        </h1>
+
+        <p
+          class="text-xl md:text-2xl text-emerald-100 mb-12 max-w-3xl mx-auto font-light animate-fade-in-up delay-300"
+        >
+          Descubre rutas inexploradas, navega con confianza y vive cada viaje
+          con la seguridad de tener el mejor compañero de navegación en tu
+          bolsillo.
+        </p>
+
+        <div
+          class="flex flex-col sm:flex-row gap-6 justify-center items-center animate-fade-in-up delay-400"
+        >
+          <a href="/map">
+            <button
+              class="cta-button relative display-font text-2xl bg-amber-500 hover:bg-amber-400 text-slate-900 px-12 py-5 rounded-full font-bold shadow-2xl"
+            >
+              <span class="relative z-10">EXPLORAR MAPA</span>
+            </button>
+          </a>
+          <button
+            class="display-font text-2xl border-2 border-white text-white px-12 py-5 rounded-full hover:bg-white hover:text-emerald-900 transition-all duration-300"
+          >
+            VER DEMO
+          </button>
+        </div>
+
+        <!-- Stats -->
+        <div
+          class="grid grid-cols-3 gap-8 mt-20 max-w-3xl mx-auto animate-scale-in delay-500"
+        >
+          <div class="text-center">
+            <div class="display-font text-5xl text-amber-400 mb-2">500K+</div>
+            <div class="text-emerald-100 text-sm uppercase tracking-wider">
+              Aventureros
+            </div>
+          </div>
+          <div class="text-center">
+            <div class="display-font text-5xl text-amber-400 mb-2">95%</div>
+            <div class="text-emerald-100 text-sm uppercase tracking-wider">
+              Precisión GPS
+            </div>
+          </div>
+          <div class="text-center">
+            <div class="display-font text-5xl text-amber-400 mb-2">24/7</div>
+            <div class="text-emerald-100 text-sm uppercase tracking-wider">
+              Soporte
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scroll Indicator -->
+      <div
+        class="absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce"
+      >
+        <svg
+          class="w-6 h-6 text-white opacity-60"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 14l-7 7m0 0l-7-7m7 7V3"
+          />
+        </svg>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-24 bg-slate-50 relative">
+      <div class="max-w-7xl mx-auto px-6">
+        <div class="text-center mb-16">
+          <h2 class="display-font text-6xl text-slate-900 mb-4">
+            CARACTERÍSTICAS ÉPICAS
+          </h2>
+          <p class="text-xl text-slate-600 max-w-2xl mx-auto">
+            Diseñado para los que buscan más que un simple mapa
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8">
+          <!-- Feature 1 -->
+          <div
+            class="feature-card bg-gradient-to-br from-emerald-50 to-white p-8 rounded-2xl border border-emerald-100 hover:border-emerald-300"
+          >
+            <div
+              class="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center mb-6 transform rotate-3"
+            >
+              <svg
+                class="w-8 h-8 text-white"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"
+                />
+              </svg>
+            </div>
+            <h3 class="display-font text-3xl text-slate-900 mb-3">
+              NAVEGACIÓN SEGURA
+            </h3>
+            <p class="text-slate-600 leading-relaxed">
+              Algoritmos avanzados que calculan rutas seguras en tiempo real,
+              evitando zonas de riesgo y optimizando tu trayecto.
+            </p>
+          </div>
+
+          <!-- Feature 2 -->
+          <div
+            class="feature-card bg-gradient-to-br from-amber-50 to-white p-8 rounded-2xl border border-amber-100 hover:border-amber-300"
+          >
+            <div
+              class="w-16 h-16 bg-amber-500 rounded-2xl flex items-center justify-center mb-6 transform -rotate-3"
+            >
+              <svg
+                class="w-8 h-8 text-white"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+                />
+              </svg>
+            </div>
+            <h3 class="display-font text-3xl text-slate-900 mb-3">
+              OFFLINE TOTAL
+            </h3>
+            <p class="text-slate-600 leading-relaxed">
+              Descarga mapas completos y navega sin conexión. Perfecto para
+              aventuras en montañas, bosques y lugares remotos.
+            </p>
+          </div>
+
+          <!-- Feature 3 -->
+          <div
+            class="feature-card bg-gradient-to-br from-sky-50 to-white p-8 rounded-2xl border border-sky-100 hover:border-sky-300"
+          >
+            <div
+              class="w-16 h-16 bg-sky-600 rounded-2xl flex items-center justify-center mb-6 transform rotate-3"
+            >
+              <svg
+                class="w-8 h-8 text-white"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z"
+                />
+              </svg>
+            </div>
+            <h3 class="display-font text-3xl text-slate-900 mb-3">
+              RUTAS FAVORITAS
+            </h3>
+            <p class="text-slate-600 leading-relaxed">
+              Guarda tus lugares favoritos, comparte descubrimientos con amigos
+              y construye tu colección personal de aventuras.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Call to Action Section -->
+    <section
+      id="download"
+      class="py-24 bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 relative overflow-hidden"
+    >
+      <div class="grain"></div>
+      <div class="absolute top-0 left-0 w-full h-full">
+        <div
+          class="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10"
+        ></div>
+        <div
+          class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10"
+        ></div>
+      </div>
+
+      <div class="relative z-10 max-w-4xl mx-auto px-6 text-center">
+        <h2
+          class="display-font text-6xl md:text-7xl text-white mb-6 leading-tight"
+        >
+          LISTA LA MOCHILA.<br />
+          <span class="text-amber-400">DESCARGA LA APP.</span>
+        </h2>
+        <p class="text-xl text-emerald-100 mb-12 font-light">
+          Únete a miles de aventureros que ya exploran el mundo con MapiGod
+        </p>
+        <div
+          class="flex flex-col sm:flex-row gap-6 justify-center items-center"
+        >
+          <button
+            class="cta-button relative flex items-center space-x-3 display-font text-xl bg-white text-slate-900 px-10 py-4 rounded-full shadow-2xl"
+          >
+            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"
+              />
+            </svg>
+            <span class="relative z-10">APP STORE</span>
+          </button>
+          <button
+            class="cta-button relative flex items-center space-x-3 display-font text-xl bg-white text-slate-900 px-10 py-4 rounded-full shadow-2xl"
+          >
+            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.9 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"
+              />
+            </svg>
+            <span class="relative z-10">GOOGLE PLAY</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-12">
+      <div class="max-w-7xl mx-auto px-6">
+        <div class="grid md:grid-cols-4 gap-8 mb-8">
+          <div>
+            <div class="flex items-center space-x-2 mb-4">
+              <svg
+                class="w-6 h-6 text-emerald-500"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+                />
+              </svg>
+              <span class="display-font text-2xl text-white">MapiGod</span>
+            </div>
+            <p class="text-sm">
+              Tu compañero definitivo para explorar el mundo con seguridad y
+              confianza.
+            </p>
+          </div>
+          <div>
+            <h4 class="text-white font-semibold mb-4">Producto</h4>
+            <ul class="space-y-2 text-sm">
+              <li>
+                <a href="#" class="hover:text-emerald-400 transition"
+                  >Características</a
+                >
+              </li>
+              <li>
+                <a href="#" class="hover:text-emerald-400 transition"
+                  >Precios</a
+                >
+              </li>
+              <li>
+                <a href="#" class="hover:text-emerald-400 transition">Guías</a>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-white font-semibold mb-4">Compañía</h4>
+            <ul class="space-y-2 text-sm">
+              <li>
+                <a href="#" class="hover:text-emerald-400 transition"
+                  >Acerca de</a
+                >
+              </li>
+              <li>
+                <a href="#" class="hover:text-emerald-400 transition">Blog</a>
+              </li>
+              <li>
+                <a href="#" class="hover:text-emerald-400 transition"
+                  >Carreras</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="text-white font-semibold mb-4">Legal</h4>
+            <ul class="space-y-2 text-sm">
+              <li>
+                <a href="#" class="hover:text-emerald-400 transition"
+                  >Privacidad</a
+                >
+              </li>
+              <li>
+                <a href="#" class="hover:text-emerald-400 transition"
+                  >Términos</a
+                >
+              </li>
+              <li>
+                <a href="#" class="hover:text-emerald-400 transition"
+                  >Contacto</a
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="border-t border-slate-800 pt-8 text-center text-sm">
+          <p>
+            &copy; 2026 MapiGod. Todos los derechos reservados. Hecho con ❤️
+            para aventureros.
+          </p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

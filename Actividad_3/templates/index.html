@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MapiGod - Mapa Interactivo</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      crossorigin=""
+    ></script>
+
+    <style>
+      /* ─── mapa ocupa alto fijo ──────────────────────────── */
+      .map-wrap {
+        display: flex;
+        height: 700px;
+        max-height: 85vh;
+      }
+
+      /* ── Mapa ─────────────────────────────────────────────── */
+      #map {
+        flex: 1;
+        z-index: 0;
+        transition: flex 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* ─── zoom controls MapiGod ─────────────────────────── */
+      .leaflet-control-zoom {
+        border: 3px solid #0a4d3c !important;
+        border-radius: 16px !important;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(10, 77, 60, 0.3) !important;
+      }
+      .leaflet-control-zoom a {
+        width: 50px !important;
+        height: 50px !important;
+        line-height: 50px !important;
+        font-size: 22px !important;
+        font-weight: 700 !important;
+        color: #fff !important;
+        background: linear-gradient(135deg, #0a4d3c, #10b981) !important;
+        transition:
+          background 0.25s,
+          transform 0.15s !important;
+      }
+      .leaflet-control-zoom a:hover {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
+        transform: scale(1.08);
+      }
+      .leaflet-control-zoom a:first-child {
+        border-bottom: 2px solid rgba(255, 255, 255, 0.2) !important;
+      }
+
+      /* ─── popups ────────────────────────────────────────── */
+      .leaflet-popup-content-wrapper {
+        border-radius: 12px;
+        padding: 0 !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+      }
+      .leaflet-popup-content {
+        margin: 0 !important;
+      }
+
+      /* ─── toast ─────────────────────────────────────────── */
+      .toast {
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        background: #fff;
+        padding: 14px 20px;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        z-index: 10000;
+        min-width: 260px;
+        animation: toastIn 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .toast.success {
+        border-left: 4px solid #10b981;
+      }
+      .toast.error {
+        border-left: 4px solid #ef4444;
+      }
+      .toast.info {
+        border-left: 4px solid #0a4d3c;
+      }
+      .toast.hiding {
+        animation: toastOut 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      }
+
+      @keyframes toastIn {
+        from {
+          transform: translateY(80px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      @keyframes toastOut {
+        from {
+          transform: translateY(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateY(80px);
+          opacity: 0;
+        }
+      }
+
+      .toast p {
+        margin: 0;
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.88rem;
+      }
+      .toast .toast-sub {
+        font-weight: 400;
+        color: #64748b;
+        font-size: 0.78rem;
+        margin-top: 2px;
+      }
+
+      /* ─── spinner dentro del toast ──────────────────────── */
+      .spinner {
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+        border: 3px solid #e2e8f0;
+        border-top-color: #0a4d3c;
+        border-radius: 50%;
+        animation: spin 0.65s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-slate-100 m-0">
+    <!-- ─── header ──────────────────────────────────────────────── -->
+    <header
+      class="bg-gradient-to-r from-emerald-800 to-emerald-600 text-white px-6 py-4 shadow-md flex items-center justify-between"
+    >
+      <div class="flex items-center gap-3">
+        <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+          <path
+            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+          />
+        </svg>
+        <h1 class="text-xl font-bold tracking-tight">MapiGod</h1>
+      </div>
+      <span class="text-emerald-200 text-sm"
+        >Haz clic en el mapa para crear puntos</span
+      >
+    </header>
+
+    <div class="map-wrap" style="position: relative">
+      <!-- ─── mapa ────────────────────────────────────────────────── -->
+      <div id="map"></div>
+    </div>
+
+    <!-- ─── script ──────────────────────────────────────────────── -->
+    <script>
+      (function () {
+        // ── configuración ─────────────────────────────────────────
+        const ENDPOINT = "/guardar_punto"; // endpoint de Flask
+        const DEFAULT = [32.5149, -117.0382]; // Tijuana
+
+        // ── mapa ───────────────────────────────────────────────────
+        const map = L.map("map", { center: DEFAULT, zoom: 13 });
+        map.zoomControl.setPosition("topright");
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "&copy; OpenStreetMap contributors",
+          maxZoom: 19,
+        }).addTo(map);
+
+        // ── iconos (inline SVG → base64) ───────────────────────────
+        function pin(color) {
+          return L.icon({
+            iconUrl:
+              "data:image/svg+xml;base64," +
+              btoa(
+                '<svg width="30" height="38" xmlns="http://www.w3.org/2000/svg">' +
+                  '<path d="M15 0C8.787 0 3.75 5.037 3.75 11.25c0 8.438 11.25 26.25 11.25 26.25s11.25-17.812 11.25-26.25C26.25 5.037 21.213 0 15 0z" fill="' +
+                  color +
+                  '"/>' +
+                  '<circle cx="15" cy="11" r="4" fill="white"/></svg>',
+              ),
+            iconSize: [30, 38],
+            iconAnchor: [15, 38],
+            popupAnchor: [0, -42],
+          });
+        }
+
+        const icons = {
+          temporal: pin("#94A3B8"), // gris   → punto acabó de aparecer
+          guardando: pin("#F59E0B"), // ámbar  → fetch en vuelo
+          guardado: pin("#10B981"), // verde  → confirmado por Flask
+          error: pin("#EF4444"), // rojo   → fetch falló
+        };
+
+        // ubicación del usuario
+        const userIcon = L.icon({
+          iconUrl:
+            "data:image/svg+xml;base64," +
+            btoa(
+              '<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">' +
+                '<circle cx="20" cy="20" r="18" fill="#0A4D3C" opacity="0.15"/>' +
+                '<circle cx="20" cy="20" r="11" fill="#0A4D3C" opacity="0.35"/>' +
+                '<circle cx="20" cy="20" r="7"  fill="#10B981"/>' +
+                '<circle cx="20" cy="20" r="3"  fill="white"/></svg>',
+            ),
+          iconSize: [40, 40],
+          iconAnchor: [20, 20],
+          popupAnchor: [0, -22],
+        });
+
+        // ── estado ─────────────────────────────────────────────────
+        let marcadorTemporal = null; // el marcador gris que aparece al hacer clic
+
+        // ── toast ──────────────────────────────────────────────────
+        // Retorna el elemento del toast para que se pueda remover manualmente
+        function toast(msg, sub, tipo) {
+          const el = document.createElement("div");
+          el.className = "toast " + tipo;
+
+          const left =
+            tipo === "info"
+              ? '<div class="spinner"></div>'
+              : tipo === "success"
+                ? '<span style="font-size:1.4rem">✅</span>'
+                : tipo === "error"
+                  ? '<span style="font-size:1.4rem">❌</span>'
+                  : "";
+
+          el.innerHTML =
+            left +
+            "<div><p>" +
+            msg +
+            "</p>" +
+            (sub ? '<p class="toast-sub">' + sub + "</p>" : "") +
+            "</div>";
+
+          document.body.appendChild(el);
+          return el;
+        }
+
+        // elimina un toast con animación de salida
+        function dismissToast(el) {
+          if (!el || !el.parentNode) return;
+          el.classList.add("hiding");
+          el.addEventListener("animationend", () => el.remove());
+        }
+
+        // ── popup: confirmación antes de guardar ──────────────────
+        function popupConfirmar(lat, lng) {
+          return `
+            <div class="p-4" style="min-width:230px">
+                <h3 class="font-bold text-slate-800 mb-1" style="font-size:.95rem">📍 Nuevo punto</h3>
+                <p class="text-slate-500 mb-3" style="font-size:.82rem">
+                    <strong>Lat:</strong> ${lat.toFixed(6)}<br>
+                    <strong>Lng:</strong> ${lng.toFixed(6)}
+                </p>
+                <p class="text-slate-400 mb-3" style="font-size:.76rem">¿Deseas guardar este punto?</p>
+                <div class="flex gap-2">
+                    <button class="btn-guardar flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-colors"
+                            style="font-size:.82rem; padding:8px 0">💾 Guardar</button>
+                    <button class="btn-cancelar bg-slate-400 hover:bg-slate-500 text-white font-semibold rounded-lg transition-colors"
+                            style="font-size:.82rem; padding:8px 14px">✖️</button>
+                </div>
+            </div>`;
+        }
+
+        // ── popup: punto ya guardado ───────────────────────────────
+        function popupGuardado(punto) {
+          return `
+            <div class="p-4" style="min-width:230px">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-bold text-emerald-800" style="font-size:.95rem">✅ Punto guardado</h3>
+                    <span class="bg-emerald-100 text-emerald-700 font-semibold rounded" style="font-size:.7rem; padding:2px 7px">${punto.id}</span>
+                </div>
+                <p class="text-slate-500" style="font-size:.82rem">
+                    <strong>Lat:</strong> ${punto.lat.toFixed(6)}<br>
+                    <strong>Lng:</strong> ${punto.lng.toFixed(6)}
+                </p>
+            </div>`;
+        }
+
+        // ── popup: error con reintentar ────────────────────────────
+        function popupError(lat, lng, msg) {
+          return `
+            <div class="p-4" style="min-width:230px">
+                <h3 class="font-bold text-red-700 mb-1" style="font-size:.95rem">❌ Error</h3>
+                <p class="text-slate-500 mb-3" style="font-size:.8rem">${msg}</p>
+                <div class="flex gap-2">
+                    <button class="btn-retry flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-colors"
+                            style="font-size:.82rem; padding:8px 0">🔄 Reintentar</button>
+                    <button class="btn-cancelar bg-slate-400 hover:bg-slate-500 text-white font-semibold rounded-lg transition-colors"
+                            style="font-size:.82rem; padding:8px 14px">✖️</button>
+                </div>
+            </div>`;
+        }
+
+        // ── enviar punto a Flask ───────────────────────────────────
+        async function enviarPunto(lat, lng) {
+          // 1) marcador pasa a ámbar + toast "Guardando…"
+          marcadorTemporal.setIcon(icons.guardando);
+          marcadorTemporal.closePopup();
+          const t = toast("Guardando punto…", "Se envía al servidor", "info");
+
+          try {
+            const res = await fetch(ENDPOINT, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ lat, lng }),
+            });
+
+            // respuesta no-2xx → se trata como error
+            if (!res.ok) throw new Error("HTTP " + res.status);
+
+            const data = await res.json();
+            if (!data.success)
+              throw new Error(data.message || "respuesta inesperada");
+
+            // 2) éxito → marcador verde + toast verde
+            dismissToast(t);
+            marcadorTemporal.setIcon(icons.guardado);
+            marcadorTemporal
+              .setPopupContent(popupGuardado(data.punto))
+              .openPopup();
+
+            const ok = toast(
+              "Punto guardado",
+              "ID: " + data.punto.id,
+              "success",
+            );
+            setTimeout(() => dismissToast(ok), 3000);
+
+            marcadorTemporal = null; // ya no es temporal
+          } catch (err) {
+            // 3) error → marcador rojo + toast rojo + popup con "Reintentar"
+            dismissToast(t);
+            marcadorTemporal.setIcon(icons.error);
+            marcadorTemporal
+              .setPopupContent(popupError(lat, lng, err.message))
+              .openPopup();
+
+            const er = toast("Error al guardar", err.message, "error");
+            setTimeout(() => dismissToast(er), 4000);
+          }
+        }
+
+        // ── click en el mapa ───────────────────────────────────────
+        map.on("click", function (e) {
+          // si hay un temporal anterior lo borra sin ruido
+          if (marcadorTemporal) {
+            map.removeLayer(marcadorTemporal);
+            marcadorTemporal = null;
+          }
+
+          const { lat, lng } = e.latlng;
+
+          // 0) marcador gris inmediato + popup "¿guardar?"
+          marcadorTemporal = L.marker([lat, lng], {
+            icon: icons.temporal,
+          }).addTo(map);
+          marcadorTemporal
+            .bindPopup(popupConfirmar(lat, lng), { maxWidth: 260 })
+            .openPopup();
+        });
+
+        // ── delegación de eventos (guardar / cancelar / reintentar) ─
+        document.addEventListener("click", function (e) {
+          // "Guardar"
+          if (e.target.closest(".btn-guardar") && marcadorTemporal) {
+            const { lat, lng } = marcadorTemporal.getLatLng();
+            enviarPunto(lat, lng);
+            return;
+          }
+
+          // "Reintentar" (mismo flujo que guardar)
+          if (e.target.closest(".btn-retry") && marcadorTemporal) {
+            const { lat, lng } = marcadorTemporal.getLatLng();
+            enviarPunto(lat, lng);
+            return;
+          }
+
+          // "Cancelar" / "✖️"
+          if (e.target.closest(".btn-cancelar") && marcadorTemporal) {
+            map.removeLayer(marcadorTemporal);
+            marcadorTemporal = null;
+          }
+        });
+
+        // ── ubicación del usuario ──────────────────────────────────
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function (pos) {
+              const c = [pos.coords.latitude, pos.coords.longitude];
+              L.marker(c, { icon: userIcon })
+                .addTo(map)
+                .bindPopup(
+                  '<div class="p-3" style="min-width:160px">' +
+                    '<h3 class="font-bold text-emerald-800 mb-1" style="font-size:.9rem">📍 Tu ubicación</h3>' +
+                    '<p class="text-slate-500" style="font-size:.8rem">' +
+                    "Lat: " +
+                    pos.coords.latitude.toFixed(6) +
+                    "<br>" +
+                    "Lng: " +
+                    pos.coords.longitude.toFixed(6) +
+                    "<br>" +
+                    '<span class="text-slate-400">Precisión: ~' +
+                    Math.round(pos.coords.accuracy) +
+                    " m</span></p></div>",
+                )
+                .openPopup();
+
+              L.circle(c, {
+                color: "#10B981",
+                fillColor: "#10B981",
+                fillOpacity: 0.12,
+                radius: pos.coords.accuracy,
+              }).addTo(map);
+
+              map.setView(c, 15);
+            },
+            function () {
+              const e = toast(
+                "Geolocalización",
+                "No se pudo obtener tu ubicación",
+                "error",
+              );
+              setTimeout(() => dismissToast(e), 4000);
+            },
+          );
+        }
+      })();
+    </script>
+  </body>
+</html>
