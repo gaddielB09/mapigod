@@ -98,4 +98,3 @@ Este código fue co-creado con **Gemini Canvas**.
 * **Prompt principal utilizado:** *"Genera una estructura de aplicación Flask que integre un mapa de Leaflet, permita guardar coordenadas y las muestre en una lista lateral estilizada con Tailwind."*
 
 ---
-Hecho con ❤️ por [Tu Nombre/Usuario]
