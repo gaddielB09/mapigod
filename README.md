@@ -42,7 +42,7 @@ Sigue estos pasos para ejecutar la versión integrada (Actividad 5) en tu máqui
 
 1.  **Clona el repositorio:**
     ```bash
-    git clone <URL_DE_TU_REPO>
+    git clone https://github.com/gaddielB09/mapigod.git
     cd MapiGod
     ```
 
@@ -50,17 +50,17 @@ Sigue estos pasos para ejecutar la versión integrada (Actividad 5) en tu máqui
     ```bash
     cd "Actividad 5"
     ```
-    *(Nota: Asegúrate de entrar a la carpeta donde está el `app.py` final)*.
+    *(Nota: Asegúrate de entrar a la carpeta donde está el `main.py` final)*.
 
 3.  **Crea y activa un entorno virtual (Opcional pero recomendado):**
     ```bash
     # Windows
-    python -m venv venv
-    venv\Scripts\activate
+    python -m venv mapigod
+    Scripts\activate
 
     # Mac/Linux
-    python3 -m venv venv
-    source venv/bin/activate
+    python3 -m venv mapigod
+    source bin/activate
     ```
 
 4.  **Instala las dependencias:**
@@ -70,11 +70,13 @@ Sigue estos pasos para ejecutar la versión integrada (Actividad 5) en tu máqui
 
 5.  **Ejecuta la aplicación:**
     ```bash
-    python app.py
+    flask --app main run
     ```
 
 6.  **Abre tu navegador:**
     Visita `http://127.0.0.1:5000` para ver MapiGod en acción.
+
+    **O ingresa a:** https://gaddiel09.pythonanywhere.com/
 
 ---
 
